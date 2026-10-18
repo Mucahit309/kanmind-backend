@@ -61,3 +61,19 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("Invalid email or password.")
         attrs["user"] = user
         return attrs
+
+
+class UserSummarySerializer(serializers.ModelSerializer):
+    """Compact user representation used in several endpoints."""
+
+    fullname = serializers.CharField(source="first_name", read_only=True)
+
+    class Meta:
+        model = User
+        fields = ["id", "email", "fullname"]
+
+
+class EmailQuerySerializer(serializers.Serializer):
+    """Validate the email query parameter of the email check."""
+
+    email = serializers.EmailField()

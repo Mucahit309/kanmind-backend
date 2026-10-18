@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 
 # 2. Local imports
+from auth_app.api.serializers import UserSummarySerializer
 from ..models import Board, Task
 
 
@@ -15,16 +16,6 @@ def members_field():
         write_only=True,
         required=False,
     )
-
-
-class UserSummarySerializer(serializers.ModelSerializer):
-    """Compact user representation used inside boards and tasks."""
-
-    fullname = serializers.CharField(source="first_name", read_only=True)
-
-    class Meta:
-        model = User
-        fields = ["id", "email", "fullname"]
 
 
 class BoardTaskSerializer(serializers.ModelSerializer):

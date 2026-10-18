@@ -1,16 +1,21 @@
-"""Views for registration and login."""
-# 1. Standard library
-# (none)
-
-# 2. Third party
+"""Views for registration, login and email check."""
+# 1. Third party
+from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import NotFound
 from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
-# 3. Local imports
-from .serializers import LoginSerializer, RegistrationSerializer
+# 2. Local imports
+from .serializers import (
+    EmailQuerySerializer,
+    LoginSerializer,
+    RegistrationSerializer,
+    UserSummarySerializer,
+)
 
 
 def build_auth_payload(user):
@@ -54,3 +59,19 @@ class LoginView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
         return Response(build_auth_payload(user), status=status.HTTP_200_OK)
+
+
+class EmailCheckView(APIView):
+    """Return the user that belongs to an email address."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Look up a user by the email query parameter."""
+        query = EmailQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        email = query.validated_data["email"]
+        user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            raise NotFound("Email not found.")
+        return Response(UserSummarySerializer(user).data)

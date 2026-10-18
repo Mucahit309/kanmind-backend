@@ -94,6 +94,7 @@ Authorization: Token <your-token>
 | GET    | `/api/boards/{id}/`  | Board with members & tasks | Owner or member |
 | PATCH  | `/api/boards/{id}/`  | Update title and members   | Owner or member |
 | DELETE | `/api/boards/{id}/`  | Delete a board             | Owner only |
+| GET    | `/api/email-check/?email=` | Find a user by email address | Yes |
 
 ## Notes
 
