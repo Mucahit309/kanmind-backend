@@ -89,6 +89,11 @@ Authorization: Token <your-token>
 |--------|----------------------|----------------------------|------|
 | POST   | `/api/registration/` | Register a user, get token | No   |
 | POST   | `/api/login/`        | Log in, get token          | No   |
+| GET    | `/api/boards/`       | List boards of the user    | Yes  |
+| POST   | `/api/boards/`       | Create a board             | Yes  |
+| GET    | `/api/boards/{id}/`  | Board with members & tasks | Owner or member |
+| PATCH  | `/api/boards/{id}/`  | Update title and members   | Owner or member |
+| DELETE | `/api/boards/{id}/`  | Delete a board             | Owner only |
 
 ## Notes
 
