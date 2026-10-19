@@ -1,3 +1,4 @@
-from django.db import models
+"""Admin configuration of the auth app.
 
-# Create your models here.
+The Django user model is already registered in the admin area.
+"""

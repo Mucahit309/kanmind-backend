@@ -1,11 +1,12 @@
-"""Serializers for boards."""
+"""Serializers for boards, tasks and comments."""
 # 1. Third party
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
 # 2. Local imports
 from auth_app.api.serializers import UserSummarySerializer
-from ..models import Board, Task
+from ..models import Board, Comment, Task
+from .permissions import is_board_member
 
 
 def members_field():
@@ -15,6 +16,17 @@ def members_field():
         queryset=User.objects.all(),
         write_only=True,
         required=False,
+    )
+
+
+def person_field(source):
+    """Return a write-only field that accepts one user id or null."""
+    return serializers.PrimaryKeyRelatedField(
+        source=source,
+        queryset=User.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True,
     )
 
 
@@ -108,3 +120,88 @@ class BoardUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Board
         fields = ["id", "title", "members", "owner_data", "members_data"]
+
+
+class TaskPeopleSerializer(serializers.ModelSerializer):
+    """Base class: assignee and reviewer as ids in, as objects out."""
+
+    assignee = UserSummarySerializer(read_only=True)
+    reviewer = UserSummarySerializer(read_only=True)
+    assignee_id = person_field("assignee")
+    reviewer_id = person_field("reviewer")
+
+    def validate(self, attrs):
+        """Ensure assignee and reviewer are members of the board."""
+        board = attrs.get("board") or self.instance.board
+        for name in ("assignee", "reviewer"):
+            user = attrs.get(name)
+            if user and not is_board_member(user, board):
+                raise serializers.ValidationError(
+                    {f"{name}_id": "User is not a member of the board."}
+                )
+        return attrs
+
+
+class TaskSerializer(TaskPeopleSerializer):
+    """Full task used for creating tasks and for the personal lists."""
+
+    comments_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Task
+        fields = [
+            "id",
+            "board",
+            "title",
+            "description",
+            "status",
+            "priority",
+            "assignee",
+            "reviewer",
+            "assignee_id",
+            "reviewer_id",
+            "due_date",
+            "comments_count",
+        ]
+
+    def get_comments_count(self, obj):
+        """Return the number of comments of the task."""
+        return obj.comments.count()
+
+
+class TaskUpdateSerializer(TaskPeopleSerializer):
+    """Task update; the board of a task cannot be changed."""
+
+    class Meta:
+        model = Task
+        fields = [
+            "id",
+            "title",
+            "description",
+            "status",
+            "priority",
+            "assignee",
+            "reviewer",
+            "assignee_id",
+            "reviewer_id",
+            "due_date",
+        ]
+
+    def validate(self, attrs):
+        """Reject a different board, then check the people."""
+        board = self.initial_data.get("board")
+        if board is not None and str(board) != str(self.instance.board_id):
+            raise serializers.ValidationError(
+                {"board": "The board of a task cannot be changed."}
+            )
+        return super().validate(attrs)
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    """Comment with the full name of its author."""
+
+    author = serializers.CharField(source="author.first_name", read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ["id", "created_at", "author", "content"]

@@ -64,6 +64,14 @@ class Task(models.Model):
     )
     due_date = models.DateField(null=True, blank=True)
 
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_tasks",
+    )
+
     class Meta:
         ordering = ["id"]
         verbose_name = "Task"
@@ -86,7 +94,7 @@ class Comment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["created_at"]
+        ordering = ["created_at", "id"]
         verbose_name = "Comment"
         verbose_name_plural = "Comments"
 

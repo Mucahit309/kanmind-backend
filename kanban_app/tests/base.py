@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
-from ..models import Board, Task
+from ..models import Board, Comment, Task
 
 
 def create_user(email, fullname="Test User"):
@@ -21,6 +21,11 @@ def create_task(board, **kwargs):
     data = {"title": "Task", "description": "Some text"}
     data.update(kwargs)
     return Task.objects.create(board=board, **data)
+
+
+def create_comment(task, author, content="Some comment"):
+    """Create a comment on the given task."""
+    return Comment.objects.create(task=task, author=author, content=content)
 
 
 class BoardAPITestCase(APITestCase):

@@ -6,19 +6,24 @@ The frontend lives in a separate repository.
 ## Features
 
 - User registration and login with token authentication
-- (Boards and tasks will be added)
+- Boards with an owner and members
+- Tasks with status, priority, assignee, reviewer and due date
+- Comments on tasks
+- Email lookup to find users when adding board members
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.x (developed and tested with Python 3.14)
 - pip
+
+The exact package versions are listed in `requirements.txt`.
 
 ## Setup
 
 1. Clone the repository and enter the project folder:
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Mucahit309/kanmind-backend.git
 cd kanmind-backend
 ```
 
@@ -79,22 +84,40 @@ the admin area at `http://127.0.0.1:8000/admin/`.
 
 ## Authentication
 
-Send the token in the header of every protected request:
+All endpoints except registration and login require a token.
+Send it in the header of every protected request:
 
 ```
 Authorization: Token <your-token>
 ```
 
-| Method | Endpoint             | Description                | Auth |
-|--------|----------------------|----------------------------|------|
-| POST   | `/api/registration/` | Register a user, get token | No   |
-| POST   | `/api/login/`        | Log in, get token          | No   |
-| GET    | `/api/boards/`       | List boards of the user    | Yes  |
-| POST   | `/api/boards/`       | Create a board             | Yes  |
-| GET    | `/api/boards/{id}/`  | Board with members & tasks | Owner or member |
-| PATCH  | `/api/boards/{id}/`  | Update title and members   | Owner or member |
-| DELETE | `/api/boards/{id}/`  | Delete a board             | Owner only |
-| GET    | `/api/email-check/?email=` | Find a user by email address | Yes |
+Requests without a valid token are answered with `401`.
+
+## Endpoints
+
+| Method | Endpoint                                 | Description                  | Permission                  |
+|--------|------------------------------------------|------------------------------|-----------------------------|
+| POST   | `/api/registration/`                     | Register a user, get token   | Public                      |
+| POST   | `/api/login/`                            | Log in, get token            | Public                      |
+| GET    | `/api/email-check/?email=`               | Find a user by email address | Authenticated               |
+| GET    | `/api/boards/`                           | List boards of the user      | Authenticated               |
+| POST   | `/api/boards/`                           | Create a board               | Authenticated               |
+| GET    | `/api/boards/{id}/`                      | Board with members and tasks | Board owner or member       |
+| PATCH  | `/api/boards/{id}/`                      | Update title and members     | Board owner or member       |
+| DELETE | `/api/boards/{id}/`                      | Delete a board               | Board owner                 |
+| GET    | `/api/tasks/assigned-to-me/`             | Tasks assigned to the user   | Authenticated               |
+| GET    | `/api/tasks/reviewing/`                  | Tasks the user has to review | Authenticated               |
+| POST   | `/api/tasks/`                            | Create a task                | Board owner or member       |
+| PATCH  | `/api/tasks/{id}/`                       | Update a task                | Board owner or member       |
+| DELETE | `/api/tasks/{id}/`                       | Delete a task                | Task creator or board owner |
+| GET    | `/api/tasks/{id}/comments/`              | List comments of a task      | Board owner or member       |
+| POST   | `/api/tasks/{id}/comments/`              | Add a comment to a task      | Board owner or member       |
+| DELETE | `/api/tasks/{id}/comments/{comment_id}/` | Delete a comment             | Comment author              |
+
+Allowed task values:
+
+- `status`: `to-do`, `in-progress`, `review`, `done`
+- `priority`: `low`, `medium`, `high`
 
 ## Notes
 
@@ -102,6 +125,21 @@ Authorization: Token <your-token>
   When creating a superuser, enter the email address as the username to be
   able to log in through the API.
 - The full name is stored in the user's `first_name` field.
+- Registration does not enforce Django's password validators.
+- The owner of a board has the same access rights as a member, even if the
+  owner is not listed in `members`. `member_count` only counts the entries in
+  `members`.
+- `assignee_id` and `reviewer_id` of a task must belong to a user who is the
+  owner or a member of the board.
+- The board of a task cannot be changed. Sending the same board id in a PATCH
+  request is accepted, a different one is rejected with `400`.
+- There is no general task list (`GET /api/tasks/`) and no single task
+  endpoint (`GET /api/tasks/{id}/`), because they are not part of the API
+  documentation and a general list would expose tasks of foreign boards.
+- Tasks store their creator. Tasks without a creator (for example created in
+  the admin area) can only be deleted by the board owner.
+- Only the author of a comment can delete it, not even the board owner.
+- Deleting a board also deletes its tasks and comments.
 - The `SECRET_KEY` is read from the `.env` file, which is not part of the
   repository.
 - CORS is configured for the frontend on `127.0.0.1:5500` / `localhost:5500`
@@ -112,6 +150,13 @@ Authorization: Token <your-token>
 ## Tests
 
 ```bash
+python manage.py test
 coverage run manage.py test
 coverage report
+```
+
+Code style can be checked with:
+
+```bash
+flake8 . --exclude venv
 ```

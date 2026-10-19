@@ -1,3 +1,4 @@
-from django.contrib import admin
+"""Admin configuration of the auth app.
 
-# Register your models here.
+The Django user model is already registered in the admin area.
+"""
